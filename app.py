@@ -12,3 +12,6 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'controle_estoque.settings')
 # Importa a application
 from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
+
+# ADICIONE ESTA LINHA ↓↓↓
+app = application  # ← Esta linha está FALTANDO!

@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Registrar Transação</h2>
+    <div class="card">
+        <div class="card-body">
+            <form method="post" id="transacaoForm">
+                {% csrf_token %}
+                
+                <div class="mb-3">
+                    <label for="id_tipo_transacao" class="form-label">Tipo de Transação</label>
+                    {{ form.tipo_transacao }}
+                </div>
+                
+                <div class="mb-3">
+                    <label for="id_produto" class="form-label">Produto</label>
+                    {{ form.produto }}
+                </div>
+                
+                <div class="mb-3">
+                    <label for="id_quantidade" class="form-label">Quantidade</label>
+                    {{ form.quantidade }}
+                </div>
+                
+                <div class="mb-3" id="loteGroup">
+                    <label for="id_lote" class="form-label">Número do Lote</label>
+                    {{ form.lote }}
+                    <div class="form-text">{{ form.lote.help_text }}</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="id_observacoes" class="form-label">Observações</label>
+                    {{ form.observacoes }}
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Registrar</button>
+                <a href="#" class="btn btn-secondary">Cancelar</a>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tipoSelect = document.getElementById('id_tipo_transacao');
+    const loteGroup = document.getElementById('loteGroup');
+    
+    function toggleLoteField() {
+        const selectedText = tipoSelect.options[tipoSelect.selectedIndex].text;
+        if (selectedText.includes('Saída')) {
+            loteGroup.style.display = 'none';
+        } else {
+            loteGroup.style.display = 'block';
+        }
+    }
+    
+    tipoSelect.addEventListener('change', toggleLoteField);
+    toggleLoteField(); // Inicializar estado
+});
+</script>
+
+<style>
+    .form-control, .form-select {
+        max-width: 500px;
+    }
+    textarea.form-control {
+        max-width: 100%;
+    }
+</style>
+{% endblock %}

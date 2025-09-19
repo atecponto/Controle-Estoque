@@ -1,0 +1,4 @@
+/controle_estoque/static
+*.pyc
+/venv
+/teste

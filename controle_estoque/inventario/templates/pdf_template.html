@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Relatório de Transações</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            color: #333;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        h2,
+        h3 {
+            color: #2c3e50;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        thead th {
+            background-color: #f5f5f5;
+            padding: 8px;
+            text-align: left;
+            border-bottom: 2px solid #ddd;
+            font-weight: bold;
+        }
+
+        tbody td {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .entrada {
+            color: #27ae60;
+            font-weight: bold;
+        }
+
+        .saida {
+            color: #c0392b;
+            font-weight: bold;
+        }
+
+        .summary {
+            margin-top: 30px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        #footer-content {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 10px;
+            color: #777;
+        }
+    </style>
+</head>
+
+<body>
+    <div>
+        <h1>Relatório de Transações</h1>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Período:</th>
+                <th>Data de geração:</th>
+                <th>Total de transações:</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{ month_name }} de {{ year }}</td>
+                <td>{{ data_geracao }}</td>
+                <td>{{ transacoes|length }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>Transações</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Tipo</th>
+                <th>Produto</th>
+                <th>Quantidade</th>
+                <th>Usuário</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for transacao in transacoes %}
+            <tr>
+                <td>{{ transacao.data|date:"d/m/Y H:i" }}</td>
+                <td>
+                    <span class="{% if transacao.tipo_transacao.entrada %}entrada{% else %}saida{% endif %}">
+                        {{ transacao.tipo_transacao.nome }}
+                    </span>
+                </td>
+                <td>{{ transacao.produto.nome }}</td>
+                <td>{{ transacao.quantidade }}</td>
+                <td>{{ transacao.usuario.username }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" style="text-align: center;">Nenhuma transação encontrada para este período.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="summary">
+        <h3>Resumo</h3>
+        <div class="summary-item">
+            <span>Total de Entradas:</span>
+            <span class="entrada text-right">{{ total_entradas }}</span>
+        </div>
+        <div class="summary-item">
+            <span>Total de Saídas:</span>
+            <span class="saida text-right">{{ total_saidas }}</span>
+        </div>
+    </div>
+
+    <div id="footer-content">
+        <div class="footer">
+            Página <pdf:pagenumber> de <pdf:pagecount><br>
+                    Relatório gerado em {{ data_geracao|date:"d/m/Y H:i" }}<br>
+                    Atec Estoque
+        </div>
+    </div>
+</body>
+
+</html>

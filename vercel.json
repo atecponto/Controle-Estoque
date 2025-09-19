@@ -2,15 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "controle_estoque/wsgi.py",
+      "src": "controle_estoque/api/index.py",
       "use": "@vercel/python"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "controle_estoque/wsgi.py"
+      "dest": "controle_estoque/api/index.py"
     }
-  ],
-  "installCommand": "pip install -r requirements.txt"
+  ]
 }

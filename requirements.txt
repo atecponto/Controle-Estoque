@@ -1,5 +1,5 @@
 Django==4.2.0
 asgiref==3.7.2
 sqlparse==0.4.4
-mysqlclient==2.1.0  # Para MySQL
-# ou psycopg2-binary==2.9.6  # Para PostgreSQL
+mysqlclient==2.1.0
+gunicorn==21.2.0  ← ADICIONE ESTA LINHA

@@ -6,9 +6,16 @@ from inventario import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.root_redirect, name='root-redirect'),
+
+    # Nova tela de navegação principal
+    path('navegacao/', views.navegacao_view, name='navegacao'),
+
+    # Autenticação
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('cadastro/', views.cadastro_usuario_view, name='cadastro'),
+
+    # Módulos
     path('produtos/', views.listar_produtos, name='listar_produtos'),
     path('produtos/novo/', views.criar_produto, name='criar_produto'),
     path('produtos/editar/<int:pk>/', views.editar_produto, name='editar_produto'),
@@ -25,8 +32,7 @@ urlpatterns = [
     path('usuario/excluir/<int:user_id>/', views.excluir_usuario, name='excluir_usuario'),
     path('relatorios/', views.transacao_pdf_view, name='relatorio_transacoes'),
     
-
-
+    # Redefinição de Senha
     path('password-reset/', views.password_reset_request, name='password_reset'),
     path('password-reset/done/',
          auth_views.PasswordResetDoneView.as_view(

@@ -1,89 +1,83 @@
-<!-- templates/usuario/usuario_admin.html -->
-{% extends "base.html" %}
+{% extends 'base_usuario.html' %}
 
 {% block content %}
-{% load static %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">Gerenciamento de Usuários</h6>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Username</th>
-                                    <th>Email</th>
-                                    <th>Ativo</th>
-                                    <th>Admin</th>
-                                    <th>Data de Cadastro</th>
-                                    <th>Último Login</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for user in users %}
-                                <tr>
-                                    <td>{{ user.id }}</td>
-                                    <td>{{ user.username }}</td>
-                                    <td>{{ user.email }}</td>
-                                    <td class="text-center">
-                                        {% if user.is_active %}
-                                            <i class="fas fa-check-circle text-success"></i>
-                                        {% else %}
-                                            <i class="fas fa-times-circle text-danger"></i>
-                                        {% endif %}
-                                    </td>
-                                    <td class="text-center">
-                                        {% if user.is_superuser %}
-                                            <i class="fas fa-check-circle text-success"></i>
-                                        {% else %}
-                                            <i class="fas fa-times-circle text-danger"></i>
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ user.date_joined|date:"d/m/Y H:i" }}</td>
-                                    <td>{{ user.last_login|date:"d/m/Y H:i" }}</td>
-                                    <td class="text-center">
-                                        <div class="btn-group" role="group">
-                                            <form method="post" action="{% url 'mudar_status_admin' user.id %}" class="d-inline">
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn btn-sm btn-{% if user.is_superuser %}warning{% else %}info{% endif %}">
-                                                    {% if user.is_superuser %}
-                                                        Remover Admin
-                                                    {% else %}
-                                                        Tornar Admin
-                                                    {% endif %}
-                                                </button>
-                                            </form>
-                                            <form method="post" action="{% url 'mudar_status_ativo' user.id %}" class="d-inline ml-1">
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn btn-sm btn-{% if user.is_active %}danger{% else %}success{% endif %}">
-                                                    {% if user.is_active %}
-                                                        Desativar
-                                                    {% else %}
-                                                        Ativar
-                                                    {% endif %}
-                                                </button>
-                                            </form>
-                                            <form method="post" action="{% url 'excluir_usuario' user.id %}" class="d-inline ml-1">
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Tem certeza que deseja excluir este usuário permanentemente?')">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Gerenciamento de Usuários</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Ativo</th>
+                        <th>Admin</th>
+                        <th>Data de Cadastro</th>
+                        <th>Último Login</th>
+                        <th class="text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                    <tr>
+                        <td>{{ u.id }}</td>
+                        <td>{{ u.username }}</td>
+                        <td>{{ u.email }}</td>
+                        <td class="text-center">
+                            {% if u.is_active %}
+                                <i class="fas fa-check-circle text-success"></i>
+                            {% else %}
+                                <i class="fas fa-times-circle text-danger"></i>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if u.is_superuser %}
+                                <i class="fas fa-check-circle text-success"></i>
+                            {% else %}
+                                <i class="fas fa-times-circle text-danger"></i>
+                            {% endif %}
+                        </td>
+                        <td>{{ u.date_joined|date:"d/m/Y H:i" }}</td>
+                        <td>{{ u.last_login|date:"d/m/Y H:i" }}</td>
+                        <td class="text-center">
+                            {% if u != user %}
+                            <div class="btn-group" role="group">
+                                <form action="{% url 'mudar_status_admin' u.id %}" method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-{% if u.is_superuser %}warning{% else %}success{% endif %} btn-sm">
+                                        {% if u.is_superuser %}Remover Admin{% else %}Tornar Admin{% endif %}
+                                    </button>
+                                </form>
+
+                                <form action="{% url 'mudar_status_ativo' u.id %}" method="post" class="d-inline ms-1">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-{% if u.is_active %}secondary{% else %}info{% endif %} btn-sm">
+                                        {% if u.is_active %}Desativar{% else %}Ativar{% endif %}
+                                    </button>
+                                </form>
+
+                                <form action="{% url 'excluir_usuario' u.id %}" method="post" class="d-inline ms-1" onsubmit="return confirm('Tem certeza que deseja excluir permanentemente o usuário {{ u.username }}?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger btn-sm">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                            {% else %}
+                            <span class="badge bg-info">Você</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center">Nenhum usuário encontrado.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>

@@ -34,17 +34,23 @@ def staff_required(view_func):
         return view_func(request, *args, **kwargs)
     return _wrapped_view
 
+# NOVA VIEW PARA A PÁGINA DE NAVEGAÇÃO
+@login_required
+def navegacao_view(request):
+    return render(request, 'navegacao/navegacao.html')
 
+# MODIFICADO
 def root_redirect(request):
     if request.user.is_authenticated:
-        return redirect('/produtos/')
+        return redirect('navegacao')  # Redireciona para a nova tela de navegação
     else:
         return redirect('/login/')
 
+# MODIFICADO
 @require_http_methods(["GET", "POST"])
 def login_view(request):
     if request.user.is_authenticated:
-        return redirect('listar_produtos')
+        return redirect('navegacao') # Redireciona para a nova tela de navegação
 
     if request.method == 'POST':
         form = AuthenticationForm(request, data=request.POST)
@@ -55,7 +61,7 @@ def login_view(request):
             if user is not None:
                 login(request, user)
                 messages.success(request, f'Bem-vindo, {username}!')
-                next_url = request.GET.get('next', 'listar_produtos')
+                next_url = request.GET.get('next', 'navegacao') # Redireciona para a nova tela de navegação
                 return redirect(next_url)
         else:
             messages.error(request, 'Usuário ou senha inválidos.')
@@ -535,4 +541,3 @@ def transacao_pdf_view(request):
         })
     
     return render(request, 'relatorio/relatorio_form.html', {'form': form})
-

@@ -1,0 +1,91 @@
+{% extends 'base_navegacao.html' %}
+{% load static %}
+
+{% block title %}Painel de Navegação - Atec Estoque{% endblock %}
+
+{% block extra_css %}
+<style>
+    .nav-card {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        border: none;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        text-decoration: none;
+        color: inherit;
+    }
+    .nav-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        color: inherit;
+    }
+    .card-body i {
+        color: #0d6efd; /* Cor primária do Bootstrap */
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="text-center mb-5">
+        <h1 class="display-5">Painel de Navegação</h1>
+        <p class="lead">Selecione um módulo para começar</p>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-xl-2 col-md-4 mb-4">
+            <a href="#" class="nav-card d-block">
+                <div class="card">
+                    <div class="card-body text-center p-4">
+                        <i class="fas fa-file-signature fa-3x mb-3"></i>
+                        <h5 class="card-title mb-0">Contratos</h5>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-xl-2 col-md-4 mb-4">
+            <a href="#" class="nav-card d-block">
+                <div class="card">
+                    <div class="card-body text-center p-4">
+                        <i class="fas fa-users fa-3x mb-3"></i>
+                        <h5 class="card-title mb-0">Clientes</h5>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-xl-2 col-md-4 mb-4">
+            <a href="#" class="nav-card d-block">
+                <div class="card">
+                    <div class="card-body text-center p-4">
+                        <i class="fas fa-handshake fa-3x mb-3"></i>
+                        <h5 class="card-title mb-0">Revenda</h5>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-xl-2 col-md-4 mb-4">
+            <a href="{% url 'listar_produtos' %}" class="nav-card d-block">
+                <div class="card">
+                    <div class="card-body text-center p-4">
+                        <i class="fas fa-boxes fa-3x mb-3"></i>
+                        <h5 class="card-title mb-0">ESTOQUE</h5>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-xl-2 col-md-4 mb-4">
+            <a href="{% url 'gerenciamento_usuario' %}" class="nav-card d-block">
+                <div class="card">
+                    <div class="card-body text-center p-4">
+                        <i class="fas fa-user-cog fa-3x mb-3"></i>
+                        <h5 class="card-title mb-0">Usuário</h5>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

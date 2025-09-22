@@ -26,31 +26,62 @@ from django.db.models import Sum
 from .utils import render_to_pdf
 from django.utils import timezone
 
+# IMPORTAÇÕES PARA GERAR GRÁFICOS
+import matplotlib
+matplotlib.use('Agg')  # Configura o Matplotlib para não usar interface gráfica
+import matplotlib.pyplot as plt
+import io
+import base64
+from django.db.models.functions import Coalesce
+
+
+# FUNÇÃO AUXILIAR PARA CRIAR GRÁFICOS DE PIZZA
+def generate_pie_chart_image(data, title):
+    """Gera um gráfico de pizza como uma imagem base64."""
+    if not data:
+        return None
+
+    labels = [item['produto__nome'] for item in data]
+    sizes = [item['total_quantidade'] for item in data]
+
+    fig, ax = plt.subplots(figsize=(6, 4)) # Tamanho ajustado para PDF
+    ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, textprops={'fontsize': 8})
+    ax.axis('equal')  # Garante que o gráfico seja um círculo.
+    
+    plt.title(title, fontsize=12)
+    
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight')
+    plt.close(fig)
+    
+    image_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+    buf.close()
+    
+    return f"data:image/png;base64,{image_base64}"
+
+
 def staff_required(view_func):
     def _wrapped_view(request, *args, **kwargs):
         if not request.user.is_staff and not request.user.is_superuser:
             messages.error(request, "Acesso negado. Você não tem permissão para realizar esta ação.")
-            return redirect('listar_produtos')  # Redireciona para uma página de listagem
+            return redirect('listar_produtos')
         return view_func(request, *args, **kwargs)
     return _wrapped_view
 
-# NOVA VIEW PARA A PÁGINA DE NAVEGAÇÃO
 @login_required
 def navegacao_view(request):
     return render(request, 'navegacao/navegacao.html')
 
-# MODIFICADO
 def root_redirect(request):
     if request.user.is_authenticated:
-        return redirect('navegacao')  # Redireciona para a nova tela de navegação
+        return redirect('navegacao')
     else:
         return redirect('/login/')
 
-# MODIFICADO
 @require_http_methods(["GET", "POST"])
 def login_view(request):
     if request.user.is_authenticated:
-        return redirect('navegacao') # Redireciona para a nova tela de navegação
+        return redirect('navegacao')
 
     if request.method == 'POST':
         form = AuthenticationForm(request, data=request.POST)
@@ -61,7 +92,7 @@ def login_view(request):
             if user is not None:
                 login(request, user)
                 messages.success(request, f'Bem-vindo, {username}!')
-                next_url = request.GET.get('next', 'navegacao') # Redireciona para a nova tela de navegação
+                next_url = request.GET.get('next', 'navegacao')
                 return redirect(next_url)
         else:
             messages.error(request, 'Usuário ou senha inválidos.')
@@ -117,57 +148,32 @@ def password_reset_request(request):
                 email_content = render_to_string(email_template_name, context)
                 
                 try:
-                    # Verifica se as configurações de email existem
                     if not all([settings.EMAIL_HOST_USER, settings.EMAIL_HOST_PASSWORD]):
                         raise ValueError("Configurações de email não encontradas no settings.py")
                     
-                    send_mail(
-                        subject=subject,
-                        message=email_content,
-                        from_email=settings.EMAIL_HOST_USER,  # Usa diretamente do settings
-                        recipient_list=[user.email],
-                        fail_silently=False
-                    )
+                    send_mail(subject, email_content, settings.EMAIL_HOST_USER, [user.email], fail_silently=False)
                     messages.success(request, 'Um email com instruções foi enviado para sua caixa de entrada.')
                     return redirect('password_reset_done')
                 
                 except Exception as e:
-                    error_message = f"""Houve um problema ao enviar o email. Verifique:
-                        1. As configurações de email no servidor
-                        2. Se você habilitou 'Aplicativos menos seguros' ou criou uma 'Senha de App'
-                        3. Sua conexão com a internet
-                        Erro detalhado: {str(e)}"""
-                    
-                    # Log do erro para debug
+                    error_message = f"Houve um problema ao enviar o email. Erro: {str(e)}"
                     import logging
                     logger = logging.getLogger(__name__)
                     logger.error(f"Erro ao enviar email de reset: {str(e)}")
-                    
                     messages.error(request, error_message)
-                    return redirect('password_reset')
             else:
                 messages.error(request, 'Este email não está cadastrado em nosso sistema.')
     else:
         password_reset_form = PasswordResetForm()
     
-    return render(
-        request=request,
-        template_name="usuario/password_reset.html",
-        context={"password_reset_form": password_reset_form}
-    )
+    return render(request, "usuario/password_reset.html", {"password_reset_form": password_reset_form})
 
 @login_required
 def listar_categorias(request):
     categorias = Categoria.objects.all()
-    
-    busca = request.GET.get('busca')
-    if busca:
-        categorias = categorias.filter(nome__icontains=busca)
-    
-    context = {
-        'categorias': categorias,
-    }
-    return render(request, 'categoria/listar.html', context)
+    if 'busca' in request.GET:
+        categorias = categorias.filter(nome__icontains=request.GET['busca'])
+    return render(request, 'categoria/listar.html', {'categorias': categorias})
 
 @login_required
 @staff_required
@@ -178,56 +184,29 @@ def criar_categoria(request):
             categoria = form.save()
             messages.success(request, f'Categoria "{categoria.nome}" criada com sucesso!')
             return redirect('listar_categorias')
-        else:
-            for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, f"{form.fields[field].label}: {error}")
     else:
         form = CategoriaForm()
-    
-    context = {'form': form}
-    return render(request, 'categoria/form.html', context)
+    return render(request, 'categoria/form.html', {'form': form})
 
 @login_required
 @staff_required
 def editar_categoria(request, pk):
     categoria = get_object_or_404(Categoria, pk=pk)
-    
     if request.method == 'POST':
         form = CategoriaForm(request.POST, instance=categoria)
         if form.is_valid():
-            LogEntry.objects.log_action(
-                user_id=request.user.id,
-                content_type_id=ContentType.objects.get_for_model(categoria).pk,
-                object_id=categoria.id,
-                object_repr=str(categoria),
-                action_flag=ADDITION,
-                change_message='Categoria criada'
-            )
             categoria = form.save()
             messages.success(request, f'Categoria "{categoria.nome}" atualizada com sucesso!')
             return redirect('listar_categorias')
-        else:
-            for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, f"{form.fields[field].label}: {error}")
     else:
         form = CategoriaForm(instance=categoria)
-    
-    context = {
-        'form': form,
-        'categoria': categoria,
-    }
-    return render(request, 'categoria/form.html', context)
+    return render(request, 'categoria/form.html', {'form': form, 'categoria': categoria})
 
 @login_required
 @staff_required
 def excluir_categoria(request, pk):
     categoria = get_object_or_404(Categoria, pk=pk)
-    
-    produtos_vinculados = categoria.produto_set.exists()
-    
-    if produtos_vinculados:
+    if categoria.produto_set.exists():
         messages.error(request, f'Não é possível excluir a categoria "{categoria.nome}" porque existem produtos vinculados a ela.')
         return redirect('listar_categorias')
     
@@ -237,31 +216,19 @@ def excluir_categoria(request, pk):
         messages.success(request, f'Categoria "{nome_categoria}" excluída com sucesso!')
         return redirect('listar_categorias')
     
-    context = {'categoria': categoria}
-    return render(request, 'categoria/confirmar_exclusao.html', context)
+    return render(request, 'categoria/confirmar_exclusao.html', {'categoria': categoria})
 
 @login_required
 def listar_produtos(request):
-    produtos = Produto.objects.filter(ativo = 0).select_related('categoria')
-    
-    categoria_id = request.GET.get('categoria')
-    if categoria_id:
-        produtos = produtos.filter(categoria_id=categoria_id)
-    
-    busca = request.GET.get('busca')
-    if busca:
-        produtos = produtos.filter(nome__icontains=busca)
+    produtos = Produto.objects.filter(ativo=0).select_related('categoria')
+    if 'categoria' in request.GET and request.GET['categoria']:
+        produtos = produtos.filter(categoria_id=request.GET['categoria'])
+    if 'busca' in request.GET:
+        produtos = produtos.filter(nome__icontains=request.GET['busca'])
     
     paginator = Paginator(produtos, 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-                                  
-    context = {
-        'produtos': produtos,
-        'categorias': Categoria.objects.all,
-        'page_obj': page_obj,
-    }
-    return render(request, 'produto/listar.html', context)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    return render(request, 'produto/listar.html', {'page_obj': page_obj, 'categorias': Categoria.objects.all()})
 
 @login_required
 @staff_required
@@ -274,114 +241,55 @@ def criar_produto(request):
             produto.save()
             messages.success(request, f'Produto "{produto.nome}" criado com sucesso!')
             return redirect('listar_produtos')
-        else:
-            for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, f"{form.fields[field].label}: {error}")
     else:
         form = ProdutoForm()
-    
-    context = {'form': form}
-    return render(request, 'produto/form.html', context)
+    return render(request, 'produto/form.html', {'form': form})
 
 @login_required
 @staff_required
 def editar_produto(request, pk):
     produto = get_object_or_404(Produto, pk=pk)
-    
     if request.method == 'POST':
         form = ProdutoForm(request.POST, instance=produto)
         if form.is_valid():
-            LogEntry.objects.log_action(
-                user_id=request.user.id,
-                content_type_id=ContentType.objects.get_for_model(produto).pk,
-                object_id=produto.id,
-                object_repr=str(produto),
-                action_flag=ADDITION,
-                change_message='Produto criado'
-            )
             produto = form.save(commit=False)
             produto.usuario_responsavel = request.user
             produto.save()
             messages.success(request, f'Produto "{produto.nome}" atualizado com sucesso!')
             return redirect('listar_produtos')
-        else:
-            for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, f"{form.fields[field].label}: {error}")
     else:
         form = ProdutoForm(instance=produto)
-    
-    context = {
-        'form': form,
-        'produto': produto,
-    }
-    return render(request, 'produto/form.html', context)
+    return render(request, 'produto/form.html', {'form': form, 'produto': produto})
 
 @login_required
 @staff_required
 def excluir_produto(request, pk):
     produto = get_object_or_404(Produto, pk=pk)
-    
     if request.method == 'POST':
         nome_produto = produto.nome
-        tem_transacoes = Transacao.objects.filter(produto=produto).exists()
-        tem_item = Item.objects.filter(produto=produto, disponivel=1).exists()
-        
-        if tem_item:
-            messages.warning(
-                request, 
-                f'Produto "{nome_produto}" possuí estoque, produto não pode ser excluído '
-            )
-
-        elif tem_transacoes:
+        if Item.objects.filter(produto=produto, disponivel=True).exists():
+            messages.warning(request, f'Produto "{nome_produto}" possui estoque e não pode ser excluído.')
+        elif Transacao.objects.filter(produto=produto).exists():
             produto.ativo = 1
             produto.save()
-            messages.warning(request, f'Produto "{nome_produto}" excluído com sucesso!')
-            
+            messages.warning(request, f'Produto "{nome_produto}" possui transações e foi inativado.')
         else:
-            try:
-                produto.delete()
-                messages.success(request, f'Produto "{nome_produto}" excluído com sucesso!')
-            except IntegrityError:
-                messages.warning(
-                    request, 
-                    f'Erro ao tentar excluir produto "{nome_produto}"'
-                )
-        
+            produto.delete()
+            messages.success(request, f'Produto "{nome_produto}" excluído com sucesso!')
         return redirect('listar_produtos')
-    
-    context = {
-        'produto': produto,
-    }
-    return render(request, 'produto/confirmar_exclusao.html', context)
+    return render(request, 'produto/confirmar_exclusao.html', {'produto': produto})
 
 @login_required
 def listar_transacao(request):
-    transacoes = Transacao.objects.all().select_related(
-        'tipo_transacao', 'usuario', 'produto'
-    ).order_by('-data')
-    
-    produto_id = request.GET.get('produto')
-    tipo_transacao = request.GET.get('tipo')
-    
-    if produto_id:
-        transacoes = transacoes.filter(produto_id=produto_id)
-    
-    if tipo_transacao:
-        transacoes = transacoes.filter(tipo_transacao_id=tipo_transacao)
+    transacoes = Transacao.objects.select_related('tipo_transacao', 'usuario', 'produto').order_by('-data')
+    if 'produto' in request.GET and request.GET['produto']:
+        transacoes = transacoes.filter(produto_id=request.GET['produto'])
+    if 'tipo' in request.GET and request.GET['tipo']:
+        transacoes = transacoes.filter(tipo_transacao_id=request.GET['tipo'])
     
     paginator = Paginator(transacoes, 15)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
-    context = {
-        'transacoes': page_obj,
-        'produtos': Produto.objects.all(),
-        'tipos_transacao': TipoTransacao.objects.all(),
-        'page_obj': page_obj,
-    }
-    return render(request, 'transacao/listar.html', context)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    return render(request, 'transacao/listar.html', {'page_obj': page_obj, 'produtos': Produto.objects.all(), 'tipos_transacao': TipoTransacao.objects.all()})
 
 @login_required
 @staff_required
@@ -389,19 +297,11 @@ def criar_transacao(request):
     if request.method == 'POST':
         form = TransacaoForm(request.POST, user=request.user)
         if form.is_valid():
-            try:
-                form.save()
-                messages.success(request, "Transação registrada com sucesso!")
-                return redirect('listar_produtos')
-            except ValidationError as e:
-                messages.error(request, str(e))
-        else:
-            for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, f"{error}")
+            form.save()
+            messages.success(request, "Transação registrada com sucesso!")
+            return redirect('listar_produtos')
     else:
         form = TransacaoForm(user=request.user)
-    
     return render(request, 'transacao/form.html', {'form': form})
 
 @login_required
@@ -416,41 +316,23 @@ def gerenciamento_usuario(request):
 @login_required
 @staff_required
 def mudar_status_admin(request, user_id):
-    """Toggle admin status for a user"""
     user_to_modify = get_object_or_404(User, id=user_id)
-    
-    # Prevent modifying yourself
-    if user_to_modify == request.user:
-        messages.error(request, "Você não pode modificar seu próprio status de administrador!")
-        return redirect('gerenciamento_usuario')
-    
-    # Toggle the status
-    user_to_modify.is_superuser = not user_to_modify.is_superuser
-    user_to_modify.is_staff = user_to_modify.is_superuser  # Typically staff follows superuser status
-    user_to_modify.save()
-    
-    action = "concedido" if user_to_modify.is_superuser else "removido"
-    messages.success(request, f"Privilégios de administrador {action} para {user_to_modify.username}!")
+    if user_to_modify != request.user:
+        user_to_modify.is_superuser = not user_to_modify.is_superuser
+        user_to_modify.is_staff = user_to_modify.is_superuser
+        user_to_modify.save()
+        messages.success(request, f"Status de admin de {user_to_modify.username} alterado.")
     return redirect('gerenciamento_usuario')
 
 @require_http_methods(["POST"])
 @login_required
 @staff_required
 def mudar_status_ativo(request, user_id):
-    """Toggle active status for a user"""
     user_to_modify = get_object_or_404(User, id=user_id)
-    
-    # Prevent modifying yourself
-    if user_to_modify == request.user:
-        messages.error(request, "Você não pode modificar seu próprio status de ativo!")
-        return redirect('gerenciamento_usuario')
-    
-    # Toggle the status
-    user_to_modify.is_active = not user_to_modify.is_active
-    user_to_modify.save()
-    
-    action = "ativado" if user_to_modify.is_active else "desativado"
-    messages.success(request, f"Usuário {user_to_modify.username} {action} com sucesso!")
+    if user_to_modify != request.user:
+        user_to_modify.is_active = not user_to_modify.is_active
+        user_to_modify.save()
+        messages.success(request, f"Status de atividade de {user_to_modify.username} alterado.")
     return redirect('gerenciamento_usuario')
 
 @require_http_methods(["POST"])
@@ -458,25 +340,13 @@ def mudar_status_ativo(request, user_id):
 @staff_required
 def excluir_usuario(request, user_id):
     user_to_delete = get_object_or_404(User, id=user_id)
-    
-    # Prevent deleting yourself
-    if user_to_delete == request.user:
-        messages.error(request, "Você não pode deletar sua própria conta!")
-        return redirect('gerenciamento_usuario')
-    
-    try:
-        username = user_to_delete.username
-        user_to_delete.delete()
-        messages.success(request, f"Usuário {username} deletado permanentemente!")
-    except ProtectedError as e:
-        protected_objects = list(e.protected_objects)
-        messages.error(request, 
-            f"Não é possível deletar {user_to_delete.username} porque existem registros vinculados: "
-            f"{len(protected_objects)} transações. Em vez disso, desative a conta.")
-        return redirect('gerenciamento_usuario')
-    
+    if user_to_delete != request.user:
+        try:
+            user_to_delete.delete()
+            messages.success(request, f"Usuário {user_to_delete.username} deletado.")
+        except ProtectedError:
+            messages.error(request, f"Não é possível deletar {user_to_delete.username} devido a registros vinculados.")
     return redirect('gerenciamento_usuario')
-
 
 def transacao_pdf_view(request):
     if request.method == 'POST':
@@ -485,59 +355,48 @@ def transacao_pdf_view(request):
             month = int(form.cleaned_data['month'])
             year = int(form.cleaned_data['year'])
             
-            _, last_day = calendar.monthrange(year, month)
-            
             start_date = timezone.make_aware(datetime(year, month, 1))
+            _, last_day = calendar.monthrange(year, month)
             end_date = timezone.make_aware(datetime(year, month, last_day, 23, 59, 59))
             
-            transacoes = Transacao.objects.filter(
-                data__gte=start_date,
-                data__lte=end_date
-            ).order_by('data')
+            transacoes = Transacao.objects.filter(data__range=(start_date, end_date)).order_by('data')
             
-            total_entradas = transacoes.filter(
-                tipo_transacao__entrada=True
-            ).aggregate(Sum('quantidade'))['quantidade__sum'] or 0
-            
-            total_saidas = transacoes.filter(
-                tipo_transacao__entrada=False
-            ).aggregate(Sum('quantidade'))['quantidade__sum'] or 0
-            
-            saldo = total_entradas - total_saidas
+            entradas_data = list(transacoes.filter(tipo_transacao__entrada=True)
+                .values('produto__nome')
+                .annotate(total_quantidade=Sum('quantidade'))
+                .order_by('-total_quantidade'))
 
-            month_names = {
-                1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril',
-                5: 'Maio', 6: 'Junho', 7: 'Julho', 8: 'Agosto',
-                9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'
-            }
-            month_name = month_names[month]
+            saidas_data = list(transacoes.filter(tipo_transacao__entrada=False)
+                .values('produto__nome')
+                .annotate(total_quantidade=Sum('quantidade'))
+                .order_by('-total_quantidade'))
+
+            chart_entradas_b64 = generate_pie_chart_image(entradas_data, f"Entradas de Produtos - {month}/{year}")
+            chart_saidas_b64 = generate_pie_chart_image(saidas_data, f"Saídas de Produtos - {month}/{year}")
+            
+            total_entradas = sum(item['total_quantidade'] for item in entradas_data)
+            total_saidas = sum(item['total_quantidade'] for item in saidas_data)
+
+            month_name = calendar.month_name[month]
             
             context = {
                 'transacoes': transacoes,
-                'month': month,
-                'year': year,
                 'month_name': month_name,
+                'year': year,
                 'total_entradas': total_entradas,
                 'total_saidas': total_saidas,
-                'saldo': saldo,
-                'data_geracao': timezone.now()
+                'data_geracao': timezone.now(),
+                'chart_entradas_b64': chart_entradas_b64,
+                'chart_saidas_b64': chart_saidas_b64,
             }
             
             pdf = render_to_pdf('pdf_template.html', context)
-            
             if pdf:
                 response = HttpResponse(pdf, content_type='application/pdf')
-                filename = f"transacoes_{month}_{year}.pdf"
-                content = f"attachment; filename={filename}"
-                response['Content-Disposition'] = content
+                response['Content-Disposition'] = f'attachment; filename="relatorio_{month}_{year}.pdf"'
                 return response
-            
-            return HttpResponse("Error generating PDF", status=500)
+            return HttpResponse("Erro ao gerar o PDF.", status=500)
     else:
-        current_date = timezone.now()
-        form = DateFilterForm(initial={
-            'month': current_date.month,
-            'year': current_date.year
-        })
+        form = DateFilterForm(initial={'month': timezone.now().month, 'year': timezone.now().year})
     
     return render(request, 'relatorio/relatorio_form.html', {'form': form})

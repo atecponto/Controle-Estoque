@@ -5,103 +5,98 @@
     <meta charset="UTF-8">
     <title>Relatório de Transações</title>
     <style>
+        @page {
+            size: a4 portrait;
+            @frame content_frame {
+                left: 50pt; width: 512pt; top: 90pt; height: 632pt;
+            }
+            @frame footer_frame {
+                -pdf-frame-content: footer-content;
+                left: 50pt; width: 512pt; top: 722pt; height: 50pt;
+            }
+        }
         body {
             font-family: Arial, sans-serif;
-            font-size: 12px;
+            font-size: 10px;
             color: #333;
         }
-
         h1 {
             text-align: center;
             color: #2c3e50;
             margin-bottom: 20px;
+            font-size: 18px;
         }
-
-        h2,
-        h3 {
+        h2 {
             color: #2c3e50;
             border-bottom: 1px solid #eee;
             padding-bottom: 5px;
+            font-size: 14px;
+            margin-top: 25px; /* Adiciona espaço antes dos títulos */
         }
-
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
-
-        thead th {
+        th {
             background-color: #f5f5f5;
-            padding: 8px;
+            padding: 6px;
             text-align: left;
             border-bottom: 2px solid #ddd;
             font-weight: bold;
         }
-
-        tbody td {
-            padding: 8px;
+        td {
+            padding: 6px;
             border-bottom: 1px solid #ddd;
         }
-
-        .entrada {
-            color: #27ae60;
-            font-weight: bold;
-        }
-
-        .saida {
-            color: #c0392b;
-            font-weight: bold;
-        }
-
+        .entrada { color: #27ae60; font-weight: bold; }
+        .saida { color: #c0392b; font-weight: bold; }
         .summary {
-            margin-top: 30px;
+            margin-top: 20px;
             padding: 10px;
             background-color: #f9f9f9;
             border: 1px solid #ddd;
+            width: 40%;
         }
-
         .summary-item {
-            display: flex;
-            justify-content: space-between;
+            display: block; /* Alterado para melhor renderização no PDF */
             margin-bottom: 5px;
         }
-
-        .text-right {
-            text-align: right;
-        }
-
         #footer-content {
-            margin-top: 50px;
             text-align: center;
-            font-size: 10px;
+            font-size: 9px;
             color: #777;
+        }
+        .chart-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .chart-container img {
+            max-width: 90%;
+            height: auto;
         }
     </style>
 </head>
 
 <body>
-    <div>
-        <h1>Relatório de Transações</h1>
-    </div>
+    <h1>Relatório de Transações</h1>
 
-    <table>
+    <table style="width: 70%;">
         <thead>
             <tr>
-                <th>Período:</th>
-                <th>Data de geração:</th>
-                <th>Total de transações:</th>
+                <th>Período do Relatório:</th>
+                <th>Data de Geração:</th>
             </tr>
         </thead>
         <tbody>
             <tr>
                 <td>{{ month_name }} de {{ year }}</td>
-                <td>{{ data_geracao }}</td>
-                <td>{{ transacoes|length }}</td>
+                <td>{{ data_geracao|date:"d/m/Y H:i" }}</td>
             </tr>
         </tbody>
     </table>
 
-    <h2>Transações</h2>
+    <h2>Tabela de Transações</h2>
     <table>
         <thead>
             <tr>
@@ -134,23 +129,38 @@
     </table>
 
     <div class="summary">
-        <h3>Resumo</h3>
         <div class="summary-item">
-            <span>Total de Entradas:</span>
-            <span class="entrada text-right">{{ total_entradas }}</span>
+            <span><strong>Total de Entradas:</strong></span>
+            <span class="entrada">{{ total_entradas }}</span>
         </div>
         <div class="summary-item">
-            <span>Total de Saídas:</span>
-            <span class="saida text-right">{{ total_saidas }}</span>
+            <span><strong>Total de Saídas:</strong></span>
+            <span class="saida">{{ total_saidas }}</span>
+        </div>
+        <div class="summary-item">
+            <span><strong>Total de Transações:</strong></span>
+            <span>{{ transacoes|length }}</span>
         </div>
     </div>
 
+    <h2>Gráficos de Movimentação</h2>
+    <div class="chart-container">
+        {% if chart_entradas_b64 %}
+            <img src="{{ chart_entradas_b64 }}">
+        {% else %}
+            <p>Nenhuma entrada de produto registrada no período.</p>
+        {% endif %}
+    </div>
+    <div class="chart-container">
+        {% if chart_saidas_b64 %}
+            <img src="{{ chart_saidas_b64 }}">
+        {% else %}
+            <p>Nenhuma saída de produto registrada no período.</p>
+        {% endif %}
+    </div>
+
     <div id="footer-content">
-        <div class="footer">
-            Página <pdf:pagenumber> de <pdf:pagecount><br>
-                    Relatório gerado em {{ data_geracao|date:"d/m/Y H:i" }}<br>
-                    Atec Estoque
-        </div>
+        Página <pdf:pagenumber> de <pdf:pagecount> | Relatório gerado em {{ data_geracao|date:"d/m/Y H:i" }} | Atec Estoque
     </div>
 </body>
 

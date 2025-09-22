@@ -1,0 +1,20 @@
+{% extends 'base_cliente.html' %}
+
+{% block title %}{% if object %}Editar Cliente{% else %}Novo Cliente{% endif %}{% endblock %}
+
+{% block content %}
+<div class="card shadow">
+    <div class="card-header">
+        <h5 class="m-0">{% if object %}Editar {{ model_name|title }}{% else %}Novo {{ model_name|title }}{% endif %}</h5>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <hr>
+            <button type="submit" class="btn btn-primary">Salvar</button>
+            <a href="{{ cancel_url }}" class="btn btn-secondary">Cancelar</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

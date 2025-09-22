@@ -1,0 +1,17 @@
+{% extends 'base_cliente.html' %}
+
+{% block content %}
+<div class="card shadow">
+    <div class="card-header">
+        <h5 class="m-0">{% if form.instance.pk %}Editar Agendamento{% else %}Novo Agendamento para {{ cliente.razao_social }}{% endif %}</h5>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-primary">Salvar</button>
+            <a href="{% url 'detalhe_cliente' cliente.id %}" class="btn btn-secondary">Cancelar</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

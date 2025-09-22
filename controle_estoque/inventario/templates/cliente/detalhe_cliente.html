@@ -1,0 +1,59 @@
+{% extends 'base_cliente.html' %}
+
+{% block title %}Detalhes de {{ cliente.fantasia }}{% endblock %}
+
+{% block content %}
+<h4>Detalhes do Cliente: {{ cliente.razao_social }}</h4>
+<hr>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <p><strong>Fantasia:</strong> {{ cliente.fantasia }}</p>
+        <p><strong>CNPJ:</strong> {{ cliente.cnpj }}</p>
+        <p><strong>Contato:</strong> {{ cliente.contato }} ({{ cliente.telefone }})</p>
+        <p><strong>Email:</strong> {{ cliente.email }}</p>
+        <p><strong>Endereço:</strong> {{ cliente.endereco }}, {{ cliente.cidade }} - {{ cliente.estado }}</p>
+        <p><strong>Sistema:</strong> {{ cliente.sistema.nome|default:"N/A" }}</p>
+        <p><strong>Observações:</strong> {{ cliente.observacoes|linebreaks }}</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="m-0">Agendamentos</h5>
+        <a href="{% url 'criar_agendamento' cliente.id %}" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Novo Agendamento</a>
+    </div>
+    <div class="card-body">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Data/Hora</th>
+                    <th>Técnico</th>
+                    <th>Descrição</th>
+                    <th>Situação</th>
+                    <th class="text-center">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for agendamento in agendamentos %}
+                <tr>
+                    <td>{{ agendamento.data_agendamento|date:"d/m/Y" }} {{ agendamento.hora_agendamento }}</td>
+                    <td>{{ agendamento.tecnico.nome|default:"N/A" }}</td>
+                    <td>{{ agendamento.descricao|truncatechars:50 }}</td>
+                    <td><span class="badge bg-info text-dark">{{ agendamento.get_situacao_display }}</span></td>
+                    <td class="text-center">
+                      {% if agendamento.situacao == 'AGENDADO' %}
+                        <a href="{% url 'finalizar_agendamento' agendamento.id %}" class="btn btn-success btn-sm">Dar Baixa</a>
+                      {% else %}
+                        <span class="text-muted">N/A</span>
+                      {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-center">Nenhum agendamento para este cliente.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

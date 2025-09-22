@@ -2,7 +2,9 @@ from django import forms
 from django.forms import ValidationError
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from .models import Produto, Categoria, TipoTransacao, Transacao, Item
+# ##### LINHA CORRIGIDA AQUI #####
+from .models import (Produto, Categoria, TipoTransacao, Transacao, Item, 
+                     Sistema, Tecnico, Cliente, Agendamento)
 from django.utils import timezone
 
 class DateFilterForm(forms.Form):
@@ -24,16 +26,12 @@ class CadastroUsuarioForm(UserCreationForm):
 
     class Meta:
         model = User
-        fields = ("username", "first_name", "last_name", "email", "password1", "password2")
+        fields = ("username", "first_name", "last_name", "email", "password2", "password2")
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
-        # Add classes to all fields
         for field_name, field in self.fields.items():
             field.widget.attrs.update({'class': 'form-control'})
-            
-            # Add specific classes for certain fields if needed
             if field_name == 'password1' or field_name == 'password2':
                 field.widget.attrs.update({'class': 'form-control password-field'})
 
@@ -72,7 +70,6 @@ class CategoriaForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs.update({'class': 'form-control'})
-        
         self.fields['nome'].widget.attrs.update({'placeholder': 'Nome da categoria'})
 
 class TransacaoForm(forms.ModelForm):
@@ -171,3 +168,68 @@ class TransacaoForm(forms.ModelForm):
                 item.disponivel = False
                 item.transacao = transacao
                 item.save()
+
+# FORMS PARA O MÓDULO DE CLIENTES
+
+class SistemaForm(forms.ModelForm):
+    class Meta:
+        model = Sistema
+        fields = ['nome', 'descricao']
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name, field in self.fields.items():
+            field.widget.attrs.update({'class': 'form-control'})
+
+class TecnicoForm(forms.ModelForm):
+    class Meta:
+        model = Tecnico
+        fields = ['nome']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['nome'].widget.attrs.update({'class': 'form-control'})
+
+class ClienteForm(forms.ModelForm):
+    class Meta:
+        model = Cliente
+        fields = [
+            'razao_social', 'fantasia', 'cnpj', 'endereco', 'telefone', 'cep',
+            'cidade', 'estado', 'contato', 'email', 'sistema', 'observacoes'
+        ]
+        widgets = {
+            'observacoes': forms.Textarea(attrs={'rows': 4}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name, field in self.fields.items():
+            field.widget.attrs.update({'class': 'form-control'})
+
+class AgendamentoForm(forms.ModelForm):
+    class Meta:
+        model = Agendamento
+        fields = ['tecnico', 'descricao', 'data_agendamento', 'hora_agendamento']
+        widgets = {
+            'data_agendamento': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'hora_agendamento': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'descricao': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['tecnico'].widget.attrs.update({'class': 'form-select'})
+
+class FinalizarAgendamentoForm(forms.ModelForm):
+    class Meta:
+        model = Agendamento
+        fields = ['laudo_tecnico', 'atendido_por', 'situacao']
+        widgets = {
+            'laudo_tecnico': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['atendido_por'].widget.attrs.update({'class': 'form-select'})
+        self.fields['situacao'].widget.attrs.update({'class': 'form-select'})
+        self.fields['situacao'].choices = [('CONCLUIDO', 'Concluído'), ('CANCELADO', 'Cancelado')]

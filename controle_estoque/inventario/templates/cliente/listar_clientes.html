@@ -1,0 +1,65 @@
+{% extends 'base_cliente.html' %}
+
+{% block title %}Lista de Clientes{% endblock %}
+
+{% block content %}
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 font-weight-bold text-primary">Lista de Clientes</h6>
+        <a href="{% url 'criar_cliente' %}" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Novo Cliente</a>
+    </div>
+    <div class="card-body">
+        <form method="get" class="mb-4">
+            <div class="row g-2">
+                <div class="col-md-5">
+                    <input type="text" name="busca" class="form-control" placeholder="Buscar por Nome, Fantasia ou CNPJ..." value="{{ request.GET.busca }}">
+                </div>
+                <div class="col-md-4">
+                    <select name="sistema" class="form-select">
+                        <option value="">Todos os Sistemas</option>
+                        {% for sistema in sistemas %}
+                        <option value="{{ sistema.id }}" {% if request.GET.sistema == sistema.id|stringformat:"s" %}selected{% endif %}>{{ sistema.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-outline-primary w-100"><i class="fas fa-filter"></i> Filtrar</button>
+                </div>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-bordered" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>Razão Social</th>
+                        <th>Fantasia</th>
+                        <th>CNPJ</th>
+                        <th>Contato</th>
+                        <th>Sistema</th>
+                        <th class="text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cliente in page_obj %}
+                    <tr>
+                        <td>{{ cliente.razao_social }}</td>
+                        <td>{{ cliente.fantasia }}</td>
+                        <td>{{ cliente.cnpj }}</td>
+                        <td>{{ cliente.contato }}</td>
+                        <td>{{ cliente.sistema.nome|default:"N/A" }}</td>
+                        <td class="text-center">
+                            <a href="{% url 'detalhe_cliente' cliente.id %}" class="btn btn-info btn-sm" title="Detalhes"><i class="fas fa-eye"></i></a>
+                            <a href="{% url 'editar_cliente' cliente.id %}" class="btn btn-warning btn-sm" title="Editar"><i class="fas fa-edit"></i></a>
+                            <a href="{% url 'excluir_cliente' cliente.id %}" class="btn btn-danger btn-sm" title="Excluir"><i class="fas fa-trash"></i></a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="text-center">Nenhum cliente encontrado.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

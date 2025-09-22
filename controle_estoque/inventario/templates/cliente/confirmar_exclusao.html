@@ -1,0 +1,17 @@
+{% extends 'base_cliente.html' %}
+
+{% block content %}
+<div class="card shadow">
+    <div class="card-header">
+        <h5 class="m-0">Confirmar Exclusão</h5>
+    </div>
+    <div class="card-body">
+        <p>Tem certeza que deseja excluir <strong>{{ object }}</strong>?</p>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Confirmar</button>
+            <a href="{{ cancel_url }}" class="btn btn-secondary">Cancelar</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

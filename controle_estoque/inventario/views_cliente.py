@@ -4,9 +4,12 @@ from django.contrib import messages
 from django.db.models import Q
 from django.urls import reverse_lazy
 from django.utils import timezone
+from django.http import HttpResponse
 
-from .models import Cliente, Sistema, Tecnico, Agendamento
-from .forms import ClienteForm, SistemaForm, TecnicoForm, AgendamentoForm, FinalizarAgendamentoForm
+from .models import Cliente, Sistema, Tecnico, Agendamento, OrdemDeServico
+from .forms import (ClienteForm, SistemaForm, TecnicoForm, AgendamentoForm, 
+                    FinalizarAgendamentoForm, OrdemDeServicoAberturaForm, OrdemDeServicoFechamentoForm)
+from .utils import render_to_pdf
 
 # ==================================
 # Views para Clientes
@@ -15,7 +18,6 @@ from .forms import ClienteForm, SistemaForm, TecnicoForm, AgendamentoForm, Final
 def listar_clientes(request):
     clientes = Cliente.objects.select_related('sistema').all()
     sistemas = Sistema.objects.all()
-
     busca = request.GET.get('busca')
     sistema_id = request.GET.get('sistema')
 
@@ -25,23 +27,21 @@ def listar_clientes(request):
             Q(fantasia__icontains=busca) |
             Q(cnpj__icontains=busca)
         )
-    
     if sistema_id:
         clientes = clientes.filter(sistema_id=sistema_id)
     
-    context = {
-        'page_obj': clientes,
-        'sistemas': sistemas
-    }
+    context = {'page_obj': clientes, 'sistemas': sistemas}
     return render(request, 'cliente/listar_clientes.html', context)
 
 @login_required
 def detalhe_cliente(request, pk):
     cliente = get_object_or_404(Cliente, pk=pk)
-    agendamentos = Agendamento.objects.filter(cliente=cliente)
+    agendamentos = Agendamento.objects.filter(cliente=cliente).order_by('-data_agendamento')
+    ordens_servico = OrdemDeServico.objects.filter(cliente=cliente)
     context = {
         'cliente': cliente,
         'agendamentos': agendamentos,
+        'ordens_servico': ordens_servico,
     }
     return render(request, 'cliente/detalhe_cliente.html', context)
 
@@ -55,7 +55,8 @@ def criar_cliente(request):
             return redirect('listar_clientes')
     else:
         form = ClienteForm()
-    return render(request, 'cliente/form_cliente.html', {'form': form, 'model_name': 'Cliente', 'cancel_url': reverse_lazy('listar_clientes')})
+    context = {'form': form, 'model_name': 'Cliente', 'cancel_url': reverse_lazy('listar_clientes')}
+    return render(request, 'cliente/form_cliente.html', context)
 
 @login_required
 def editar_cliente(request, pk):
@@ -68,7 +69,8 @@ def editar_cliente(request, pk):
             return redirect('listar_clientes')
     else:
         form = ClienteForm(instance=cliente)
-    return render(request, 'cliente/form_cliente.html', {'form': form, 'object': cliente, 'model_name': 'Cliente', 'cancel_url': reverse_lazy('listar_clientes')})
+    context = {'form': form, 'object': cliente, 'model_name': 'Cliente', 'cancel_url': reverse_lazy('listar_clientes')}
+    return render(request, 'cliente/form_cliente.html', context)
 
 @login_required
 def excluir_cliente(request, pk):
@@ -77,7 +79,8 @@ def excluir_cliente(request, pk):
         cliente.delete()
         messages.success(request, 'Cliente excluído com sucesso!')
         return redirect('listar_clientes')
-    return render(request, 'cliente/confirmar_exclusao.html', {'object': cliente, 'model_name': 'Cliente', 'cancel_url': reverse_lazy('listar_clientes')})
+    context = {'object': cliente, 'model_name': 'Cliente', 'cancel_url': reverse_lazy('listar_clientes')}
+    return render(request, 'cliente/confirmar_exclusao.html', context)
 
 # ==================================
 # Views para Sistemas
@@ -97,7 +100,8 @@ def criar_sistema(request):
             return redirect('listar_sistemas')
     else:
         form = SistemaForm()
-    return render(request, 'cliente/form_sistema.html', {'form': form, 'model_name': 'Sistema', 'cancel_url': reverse_lazy('listar_sistemas')})
+    context = {'form': form, 'model_name': 'Sistema', 'cancel_url': reverse_lazy('listar_sistemas')}
+    return render(request, 'cliente/form_sistema.html', context)
     
 # ==================================
 # Views para Técnicos
@@ -117,7 +121,8 @@ def criar_tecnico(request):
             return redirect('listar_tecnicos')
     else:
         form = TecnicoForm()
-    return render(request, 'cliente/form_tecnico.html', {'form': form, 'model_name': 'Técnico', 'cancel_url': reverse_lazy('listar_tecnicos')})
+    context = {'form': form, 'model_name': 'Técnico', 'cancel_url': reverse_lazy('listar_tecnicos')}
+    return render(request, 'cliente/form_tecnico.html', context)
 
 # ==================================
 # Views para Agendamentos
@@ -140,7 +145,8 @@ def criar_agendamento(request, cliente_pk):
             return redirect('detalhe_cliente', pk=cliente.pk)
     else:
         form = AgendamentoForm()
-    return render(request, 'cliente/form_agendamento.html', {'form': form, 'cliente': cliente})
+    context = {'form': form, 'cliente': cliente}
+    return render(request, 'cliente/form_agendamento.html', context)
 
 @login_required
 def finalizar_agendamento(request, pk):
@@ -148,11 +154,62 @@ def finalizar_agendamento(request, pk):
     if request.method == 'POST':
         form = FinalizarAgendamentoForm(request.POST, instance=agendamento)
         if form.is_valid():
-            agendamento = form.save(commit=False)
-            agendamento.data_resolvido = timezone.now()
-            agendamento.save()
+            agendamento_finalizado = form.save(commit=False)
+            agendamento_finalizado.data_resolvido = timezone.now()
+            agendamento_finalizado.save()
             messages.success(request, 'Agendamento atualizado com sucesso!')
             return redirect('detalhe_cliente', pk=agendamento.cliente.id)
     else:
         form = FinalizarAgendamentoForm(instance=agendamento)
-    return render(request, 'cliente/form_agendamento.html', {'form': form, 'cliente': agendamento.cliente, 'finalizando': True})
+    context = {'form': form, 'cliente': agendamento.cliente, 'finalizando': True}
+    return render(request, 'cliente/form_agendamento.html', context)
+
+# ==================================
+# Views para Ordem de Serviço
+# ==================================
+@login_required
+def criar_ordem_de_servico(request, cliente_pk):
+    cliente = get_object_or_404(Cliente, pk=cliente_pk)
+    if request.method == 'POST':
+        form = OrdemDeServicoAberturaForm(request.POST)
+        if form.is_valid():
+            os = form.save(commit=False)
+            os.cliente = cliente
+            os.save()
+            messages.success(request, f'Ordem de Serviço #{os.id} criada com sucesso!')
+            return redirect('detalhe_cliente', pk=cliente.pk)
+    else:
+        form = OrdemDeServicoAberturaForm()
+    return render(request, 'cliente/form_os.html', {'form': form, 'cliente': cliente, 'titulo': 'Abrir Nova Ordem de Serviço'})
+
+@login_required
+def detalhe_ordem_de_servico(request, pk):
+    os = get_object_or_404(OrdemDeServico, pk=pk)
+    return render(request, 'cliente/detalhe_os.html', {'os': os})
+
+@login_required
+def fechar_ordem_de_servico(request, pk):
+    os = get_object_or_404(OrdemDeServico, pk=pk)
+    if request.method == 'POST':
+        form = OrdemDeServicoFechamentoForm(request.POST, instance=os)
+        if form.is_valid():
+            os_fechada = form.save(commit=False)
+            os_fechada.data_fechamento = timezone.now()
+            os_fechada.save()
+            messages.success(request, f'Ordem de Serviço #{os.id} finalizada com sucesso!')
+            return redirect('detalhe_cliente', pk=os.cliente.id)
+    else:
+        form = OrdemDeServicoFechamentoForm(instance=os)
+    return render(request, 'cliente/form_os.html', {'form': form, 'cliente': os.cliente, 'titulo': f'Fechar Ordem de Serviço #{os.id}'})
+
+@login_required
+def imprimir_ordem_de_servico_pdf(request, pk):
+    os = get_object_or_404(OrdemDeServico, pk=pk)
+    pdf = render_to_pdf('cliente/pdf_os.html', {'os': os})
+    if pdf:
+        response = HttpResponse(pdf, content_type='application/pdf')
+        filename = f"OS_{os.id}_{os.cliente.razao_social}.pdf"
+        content = f"inline; filename={filename}"
+        response['Content-Disposition'] = content
+        return response
+    return HttpResponse("Erro ao gerar PDF", status=400)

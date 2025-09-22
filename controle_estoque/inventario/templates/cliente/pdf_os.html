@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Ordem de Serviço #{{ os.id }}</title>
+    <style> body { font-family: sans-serif; } /* Estilos simples para PDF */ </style>
+</head>
+<body>
+    <h1>Ordem de Serviço #{{ os.id }}</h1>
+    <hr>
+    <p><strong>Cliente:</strong> {{ os.cliente.razao_social }}</p>
+    <p><strong>CNPJ:</strong> {{ os.cliente.cnpj }}</p>
+    <p><strong>Data de Abertura:</strong> {{ os.data_abertura|date:"d/m/Y H:i" }}</p>
+    <hr>
+    <h3>Problema Relatado</h3>
+    <p>{{ os.problema_relatado|linebreaks }}</p>
+    <hr>
+    <h3>Solução Aplicada</h3>
+    <p>{{ os.solucao_aplicada|linebreaks|default:"(Em aberto)" }}</p>
+</body>
+</html>

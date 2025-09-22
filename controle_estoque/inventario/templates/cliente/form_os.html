@@ -1,0 +1,15 @@
+{% extends 'base_cliente.html' %}
+{% block content %}
+<div class="card shadow">
+    <div class="card-header"><h5 class="m-0">{{ titulo }} para {{ cliente.razao_social }}</h5></div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <hr>
+            <button type="submit" class="btn btn-primary">Salvar</button>
+            <a href="{% url 'detalhe_cliente' cliente.id %}" class="btn btn-secondary">Cancelar</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

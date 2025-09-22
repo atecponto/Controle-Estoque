@@ -1,19 +1,41 @@
 {% extends 'base_cliente.html' %}
-
 {% block title %}{% if object %}Editar Cliente{% else %}Novo Cliente{% endif %}{% endblock %}
-
 {% block content %}
 <div class="card shadow">
-    <div class="card-header">
-        <h5 class="m-0">{% if object %}Editar {{ model_name|title }}{% else %}Novo {{ model_name|title }}{% endif %}</h5>
-    </div>
+    <div class="card-header"><h5 class="m-0">{% if object %}Editar Cliente{% else %}Novo Cliente{% endif %}</h5></div>
     <div class="card-body">
         <form method="post">
             {% csrf_token %}
-            {{ form.as_p }}
+            <div class="row">
+                <div class="col-md-8 mb-3"><label>{{ form.razao_social.label }}</label>{{ form.razao_social }}</div>
+                <div class="col-md-4 mb-3"><label>{{ form.tipo_contrato.label }}</label>{{ form.tipo_contrato }}</div>
+            </div>
+            <div class="row">
+                <div class="col-md-8 mb-3"><label>{{ form.fantasia.label }}</label>{{ form.fantasia }}</div>
+                <div class="col-md-4 mb-3"><label>{{ form.contato.label }}</label>{{ form.contato }}</div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3"><label>{{ form.cnpj.label }}</label>{{ form.cnpj }}</div>
+                <div class="col-md-6 mb-3"><label>{{ form.inscricao_estadual.label }}</label>{{ form.inscricao_estadual }}</div>
+            </div>
+            <div class="row">
+                <div class="col-md-8 mb-3"><label>{{ form.endereco.label }}</label>{{ form.endereco }}</div>
+                <div class="col-md-4 mb-3"><label>{{ form.bairro.label }}</label>{{ form.bairro }}</div>
+            </div>
+            <div class="row">
+                <div class="col-md-3 mb-3"><label>{{ form.telefone.label }}</label>{{ form.telefone }}</div>
+                <div class="col-md-3 mb-3"><label>{{ form.cep.label }}</label>{{ form.cep }}</div>
+                <div class="col-md-4 mb-3"><label>{{ form.cidade.label }}</label>{{ form.cidade }}</div>
+                <div class="col-md-2 mb-3"><label>{{ form.estado.label }}</label>{{ form.estado }}</div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3"><label>{{ form.email.label }}</label>{{ form.email }}</div>
+                <div class="col-md-6 mb-3"><label>{{ form.sistema.label }}</label>{{ form.sistema }}</div>
+            </div>
+            <div class="mb-3"><label>{{ form.observacoes.label }}</label>{{ form.observacoes }}</div>
             <hr>
             <button type="submit" class="btn btn-primary">Salvar</button>
-            <a href="{{ cancel_url }}" class="btn btn-secondary">Cancelar</a>
+            <a href="{% url 'listar_clientes' %}" class="btn btn-secondary">Cancelar</a>
         </form>
     </div>
 </div>

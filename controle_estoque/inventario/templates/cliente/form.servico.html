@@ -1,0 +1,19 @@
+{% extends 'base_cliente.html' %}
+{% block title %}Novo Serviço{% endblock %}
+{% block content %}
+<div class="card shadow">
+    <div class="card-header"><h5 class="m-0">Registrar Novo Serviço para {{ cliente.razao_social }}</h5></div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">{{ form.data_servico.label_tag }} {{ form.data_servico }}</div>
+            <div class="mb-3">{{ form.verificado_por.label_tag }} {{ form.verificado_por }}</div>
+            <div class="mb-3">{{ form.descricao.label_tag }} {{ form.descricao }}</div>
+            <div class="form-check mb-3">{{ form.finalizado }} {{ form.finalizado.label_tag }}</div>
+            <hr>
+            <button type="submit" class="btn btn-primary">Registrar Serviço</button>
+            <a href="{% url 'detalhe_cliente' cliente.id %}" class="btn btn-secondary">Cancelar</a>
+        </form>
+    </div>
+</div>
+{% endblock %}
